@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Good & Funny Website — The Laugh Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#ff6b6b; --muted:#94a3b8; --glass: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,Arial; background: radial-gradient(1000px 600px at 10% 10%, rgba(255,107,107,0.06), transparent),
+      linear-gradient(180deg, #071021 0%, #061323 100%); color:#e6eef8; -webkit-font-smoothing:antialiased;
+      display:flex;align-items:center;justify-content:center;padding:32px;
+    }
+    .wrap{width:min(980px,96%);}
+
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ffd86b);display:grid;place-items:center;font-weight:800;color:#081624;box-shadow:0 6px 18px rgba(255,107,107,0.12)}
+    h1{margin:0;font-size:28px}
+    p.lead{margin:0;color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:20px;border-radius:12px;box-shadow:0 8px 24px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    button{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px 14px;border-radius:10px;color:inherit;font-weight:600;cursor:pointer}
+    button:active{transform:translateY(1px)}
+
+    .joke{font-size:18px;line-height:1.4;margin-top:14px;min-height:72px}
+    .small{font-size:13px;color:var(--muted)}
+
+    .right{position:relative}
+    .stats{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    .stat{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;min-width:90px;text-align:center}
+
+    .roast{margin-top:8px;color:#ffd86b;font-weight:700}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+
+    /* silly animations */
+    .party{pointer-events:none;position:fixed;inset:0;z-index:2}
+    .emoji{font-size:20px;position:absolute;will-change:transform;opacity:0;}
+    .shake{animation:shake 800ms infinite}
+    @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+
+    /* responsive */
+    @media (max-width:880px){.grid{grid-template-columns:1fr}.right{order:2}}
+
+    /* cute confetti canvas fallback */
+    canvas{position:fixed;inset:0;pointer-events:none;z-index:1}
+  </style>
+</head>
+<body>
+  <div class="party" aria-hidden="true"></div>
+  <canvas id="confetti"></canvas>
+  <main class="wrap">
+    <header>
+      <div class="logo">😊</div>
+      <div>
+        <h1>The Laugh Lab</h1>
+        <p class="lead">A compact, ridiculous, and slightly chaotic single-file website. Press the buttons. Regret optional.</p>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div>
+            <div class="small">Joke machine</div>
+            <div class="joke" id="joke">Press "Give me a joke" — I'll do my best, which is to say: barely adequate.</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Mood</div>
+            <div style="font-weight:800;font-size:18px">Mischievous</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="jokeBtn">😂 Give me a joke</button>
+          <button id="punBtn">🤏 Pun me (tiny)</button>
+          <button id="roastBtn">🔥 Roast me</button>
+          <button id="danceBtn">🕺 Make it dance</button>
+          <button id="confettiBtn">🎉 Confetti!</button>
+        </div>
+
+        <div class="small">Tip: click <strong>Pun me</strong> for dangerously short wordplay.</div>
+
+        <div class="roast" id="roastArea"></div>
+      </div>
+
+      <aside class="card right">
+        <div class="stats">
+          <div class="stat">
+            <div class="small">Laughs</div>
+            <div id="laughs">0</div>
+          </div>
+          <div class="stat">
+            <div class="small">Roasts</div>
+            <div id="roasts">0</div>
+          </div>
+          <div class="stat">
+            <div class="small">Puns</div>
+            <div id="puns">0</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">Instant classics</div>
+          <ul id="history" style="margin-top:10px;padding-left:16px;color:var(--muted)"></ul>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="copyBtn">📋 Copy last</button>
+          <button id="resetBtn">♻️ Reset</button>
+        </div>
+
+        <footer>
+          <div>Built with zero dignity and 100% HTML. Open-source vibes.</div>
+        </footer>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    // — small in-memory content banks —
+    const jokes = [
+      "I told my computer I needed a break — it said 'No problem, I'll go to sleep.'",
+      "Why do Java developers wear glasses? Because they can't C#.",
+      "Parallel lines have so much in common. It's a shame they'll never meet.",
+      "My dog used to chase people on a bike a lot. It got so bad, finally I had to take his bike away.",
+      "I asked the librarian if the library had books on paranoia. She whispered, 'They're right behind you.'"
+    ];
+
+    const puns = [
+      "I'm reading a book about anti-gravity — it's impossible to put down.",
+      "I used to be a baker, but I couldn't make enough dough.",
+      "To the guy who invented zero: Thanks for nothing.",
+      "I wondered why the baseball was getting bigger. Then it hit me."
+    ];
+
+    const roasts = [
+      "You're like a cloud. When you disappear, it's a beautiful day.",
+      "If I wanted to kill myself I'd climb your ego and jump to your IQ.",
+      "You're proof that evolution can go in reverse.",
+      "I'd agree with you but then we'd both be wrong."
+    ];
+
+    // state
+    let state = {laughs:0, roasts:0, puns:0, last: ''};
+
+    // elements
+    const jokeEl = document.getElementById('joke');
+    const historyEl = document.getElementById('history');
+    const laughsEl = document.getElementById('laughs');
+    const roastsEl = document.getElementById('roasts');
+    const punsEl = document.getElementById('puns');
+    const roastArea = document.getElementById('roastArea');
+
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+    document.getElementById('jokeBtn').addEventListener('click', ()=>{
+      const j = pick(jokes);
+      jokeEl.textContent = j;
+      pushHistory(j);
+      state.laughs++;
+      laughsEl.textContent = state.laughs;
+      wiggleEmoji('😂');
+    });
+
+    document.getElementById('punBtn').addEventListener('click', ()=>{
+      const p = pick(puns);
+      jokeEl.textContent = p;
+      pushHistory(p);
+      state.puns++;
+      punsEl.textContent = state.puns;
+      blink(p);
+    });
+
+    document.getElementById('roastBtn').addEventListener('click', ()=>{
+      const r = pick(roasts);
+      roastArea.textContent = r;
+      pushHistory(r);
+      state.roasts++;
+      roastsEl.textContent = state.roasts;
+      wiggleEmoji('🔥');
+    });
+
+    document.getElementById('danceBtn').addEventListener('click', ()=>{
+      document.body.classList.toggle('shake');
+      const el = document.querySelector('.logo');
+      el.classList.add('shake');
+      setTimeout(()=>el.classList.remove('shake'), 1200);
+    });
+
+    document.getElementById('confettiBtn').addEventListener('click', ()=>{
+      runConfetti();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async ()=>{
+      const text = state.last || jokeEl.textContent || roastArea.textContent;
+      if(!text) return alert('Nothing to copy (yes, tragic).');
+      try{ await navigator.clipboard.writeText(text); alert('Copied — now pretend you wrote it.'); }
+      catch(e){ prompt('Copy this manually:', text); }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      state = {laughs:0, roasts:0, puns:0, last:''};
+      laughsEl.textContent = 0; roastsEl.textContent = 0; punsEl.textContent = 0; historyEl.innerHTML=''; jokeEl.textContent='Start again, champ.'; roastArea.textContent='';
+    });
+
+    function pushHistory(txt){
+      state.last = txt;
+      const li = document.createElement('li'); li.textContent = txt; historyEl.prepend(li);
+      // limit to 6
+      while(historyEl.children.length>6) historyEl.lastChild.remove();
+    }
+
+    // tiny visual: drop a floating emoji for fun
+    function wiggleEmoji(ch){
+      const div = document.createElement('div'); div.className='emoji'; div.textContent=ch;
+      document.querySelector('.party').appendChild(div);
+      // randomize
+      const left = Math.random()*90; const top = 20 + Math.random()*50;
+      div.style.left = left + '%'; div.style.top = top + '%'; div.style.opacity=1;
+      div.animate([
+        {transform:'translateY(0) scale(1)', opacity:1},
+        {transform:'translateY(-120px) scale(1.6)', opacity:0}
+      ],{duration:1200,easing:'cubic-bezier(.2,.8,.2,1)'}).onfinish = ()=>div.remove();
+    }
+
+    function blink(text){
+      const old = jokeEl.style.opacity; jokeEl.style.transition='none'; jokeEl.style.opacity=0; setTimeout(()=>{ jokeEl.style.transition='opacity 300ms'; jokeEl.style.opacity=1; }, 50);
+    }
+
+    // confetti (small, local implementation) — no external libs
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    let confettiItems = [];
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    addEventListener('resize', resize); resize();
+
+    function runConfetti(){
+      for(let i=0;i<120;i++){
+        confettiItems.push({x:Math.random()*canvas.width, y:-20 - Math.random()*200, vx:(Math.random()-0.5)*2, vy:2+Math.random()*4, size:4+Math.random()*8, color: `hsl(${Math.random()*360},70%,60%)`, rot:Math.random()*360, vr:Math.random()*6-3});
+      }
+      animateConfetti();
+    }
+
+    let animId=null;
+    function animateConfetti(){
+      if(animId) return; // already running
+      function step(){
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        for(let i=confettiItems.length-1;i>=0;i--){
+          const p = confettiItems[i];
+          p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+          ctx.fillStyle = p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+          ctx.restore();
+          if(p.y>canvas.height+50) confettiItems.splice(i,1);
+        }
+        if(confettiItems.length>0) animId=requestAnimationFrame(step); else { cancelAnimationFrame(animId); animId=null; }
+      }
+      step();
+    }
+
+    // small accessibility: keyboard shortcuts
+    addEventListener('keydown', (e)=>{
+      if(e.key==='j') document.getElementById('jokeBtn').click();
+      if(e.key==='p') document.getElementById('punBtn').click();
+      if(e.key==='r') document.getElementById('roastBtn').click();
+      if(e.key==='c') document.getElementById('confettiBtn').click();
+    });
+
+    // initial greeting
+    setTimeout(()=>{ jokeEl.textContent = "Welcome — press 😂 or hit 'j' for a joke. Be kind to your CPU." }, 350);
+  </script>
+</body>
+</html>
